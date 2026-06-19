@@ -12,7 +12,6 @@ entity savemem is
       
       SAVETYPE             : in  std_logic_vector(2 downto 0); -- 0 -> None, 1 -> EEPROM4, 2 -> EEPROM16, 3 -> SRAM32, 4 -> SRAM96, 5 -> Flash
       CONTROLLERPAK        : in  std_logic;
-      TRANSFERPAK          : in  std_logic;
       
       save                 : in  std_logic;
       load                 : in  std_logic;
@@ -92,7 +91,7 @@ architecture arch of savemem is
 
 begin 
 
-   DOSAVE <= '1' when (SAVETYPE = "001" or SAVETYPE = "010" or SAVETYPE = "011" or SAVETYPE = "100" or SAVETYPE = "101" or CONTROLLERPAK = '1' or TRANSFERPAK = '1') else '0';
+   DOSAVE <= '1' when (SAVETYPE = "001" or SAVETYPE = "010" or SAVETYPE = "011" or SAVETYPE = "100" or SAVETYPE = "101" or CONTROLLERPAK = '1') else '0';
    
    MAXBLOCK <=   0 when (SAVETYPE = "001") else -- EEPROM4
                  3 when (SAVETYPE = "010") else -- EEPROM16
@@ -197,7 +196,7 @@ begin
                   if ((is_CPAK = '0' and (SAVETYPE = "001" or SAVETYPE = "010")) or (sdram_done = '1' and (SAVETYPE = "011" or SAVETYPE = "100" or SAVETYPE = "101" or is_CPAK = '1'))) then
                      if (unsigned(mem_addrA) = 127) then
                         if ((is_CPAK = '1' and blockCnt = 255) or (is_CPAK = '0' and blockCnt = MAXBLOCK)) then
-                           if (is_CPAK = '1' or (CONTROLLERPAK = '0' and TRANSFERPAK = '0')) then
+                           if (is_CPAK = '1' or CONTROLLERPAK = '0') then
                               state        <= IDLE;
                               loadLatched  <= '0';
                            else
@@ -270,7 +269,7 @@ begin
                   mem_addrA <= (others => '0');
                   if (save_ack = '0') then 
                      if ((is_CPAK = '1' and blockCnt = 255) or (is_CPAK = '0' and blockCnt = MAXBLOCK)) then
-                        if (is_CPAK = '1' or (CONTROLLERPAK = '0' and TRANSFERPAK = '0')) then
+                        if (is_CPAK = '1' or CONTROLLERPAK = '0') then
                            state          <= IDLE;
                            save_ongoing   <= '0';
                         else

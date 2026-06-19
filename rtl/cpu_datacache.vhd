@@ -111,6 +111,7 @@ architecture arch of cpu_datacache is
       IDLE,
       CLEARCACHE,
       FILL,
+      FILLWRITE,
       READWAIT,
       WAITSLOW,
       WRITEBACK1ADDR,
@@ -276,13 +277,13 @@ begin
    
    write_data_rot  <= write_data when (RW_addr(2) = '0' and RW_64 = '0') else write_data(31 downto 0) & write_data(63 downto 32);
                       
-   cache_data_b    <= write_data_1 when (stall4 = '1') else write_data_rot;
-   cache_be_b      <= write_be_1   when (stall4 = '1') else write_be_rot;
+   cache_data_b    <= write_data_1 when (stall4 = '1' or state = FILLWRITE) else write_data_rot;
+   cache_be_b      <= write_be_1   when (stall4 = '1' or state = FILLWRITE) else write_be_rot;
    
-   cache_we_b      <= '1' when ((state = IDLE and read_hit = '1' and write_ena = '1') or (writeMode = '1' and state = FILL and ram_done = '1')) else '0';
+   cache_we_b      <= '1' when ((state = IDLE and read_hit = '1' and write_ena = '1') or state = FILLWRITE) else '0';
    
    write_done      <=  wb_done when (force_wb = '1') else
-                       '1'     when ((state = IDLE and read_hit = '1' and write_ena = '1') or (writeMode = '1' and state = FILL and ram_done = '1')) else 
+                       '1'     when ((state = IDLE and read_hit = '1' and write_ena = '1') or state = FILLWRITE) else 
                        '0';
    
    read_busy       <= '1' when (state = READWAIT or state = WAITSLOW or state = FILL) else '0';
@@ -471,11 +472,18 @@ begin
                      tag_wren_cmd   <= '1';
                   end if;
                   if (ram_done = '1') then
-                     state          <= IDLE;
-                     if (isWB = '1') then
-                        state          <= WRITEBACK1ADDR; 
-                        writeback_addr <= fillAddr(31 downto 4) & "0000";
+                     if (writeMode = '1') then
+                        state          <= FILLWRITE;
+                     else
+                        state          <= IDLE;
                      end if;
+                  end if;
+
+               when FILLWRITE =>
+                  state          <= IDLE;
+                  if (isWB = '1') then
+                     state          <= WRITEBACK1ADDR; 
+                     writeback_addr <= fillAddr(31 downto 4) & "0000";
                   end if;
                   
                when READWAIT =>

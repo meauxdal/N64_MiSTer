@@ -181,7 +181,7 @@ assign HDMI_BOB_DEINT = 0;
 assign AUDIO_S   = 1;
 assign AUDIO_MIX = status[8:7];
 
-assign LED_USER  = cartN64_download | cartGB_download | bk_pending;
+assign LED_USER  = cartN64_download | cartDD_download | cartDDIpl_download | cartDDIplData_download | bk_pending;
 assign LED_DISK  = 0;
 assign LED_POWER = 0;
 assign VGA_SCALER= 0;
@@ -292,9 +292,10 @@ wire reset_or = RESET | buttons[1] | status[0];
 
 `include "build_id.v"
 parameter CONF_STR = {
-	"N64;SS3C000000:1000000;",
+   "N64DD;SS3C000000:1000000;",
    "FS1,N64z64n64v64,Load,32000000;",
-   "F2,GBCGB ,Load GB-Transfer;",
+   "F3,NDDndd,Load 64DD Disk,36000000;",
+   "F4,N64z64n64v64binrom,Load 64DD IPL,33BC0000;",
    "-;",
    "C,Cheats;",
    "O[103],Cheats Enabled,Yes,No;",
@@ -309,10 +310,10 @@ parameter CONF_STR = {
 	//"RH,Save state (Alt-F1);",
 	//"RI,Restore state (F1);",
 	"-;",
-   "O[51:49],Pad 1 Type,N64Pad,None,ControllerPak,RumblePak,SNAC,TransferPak,Keyboard;",
-   "O[54:52],Pad 2 Type,N64Pad,None,ControllerPak,RumblePak,SNAC;",
-   "O[57:55],Pad 3 Type,N64Pad,None,ControllerPak,RumblePak,SNAC;",
-   "O[60:58],Pad 4 Type,N64Pad,None,ControllerPak,RumblePak,SNAC;",
+   "O[51:49],Pad 1 Type,N64Pad,None,ControllerPak,RumblePak,SNAC,Keyboard;",
+   "O[54:52],Pad 2 Type,N64Pad,None,ControllerPak,RumblePak,SNAC,Keyboard;",
+   "O[57:55],Pad 3 Type,N64Pad,None,ControllerPak,RumblePak,SNAC,Keyboard;",
+   "O[60:58],Pad 4 Type,N64Pad,None,ControllerPak,RumblePak,SNAC,Keyboard;",
    "O[92],Swap Analog<->DPAD,Off,On;",
    "O[86:84],Mouse for P1,Off,Buttons ABZ,Buttons ZAB,Buttons ZBA;",
    "O[62:61],Dual Controller,Off,P1->P2,P1->P3;",
@@ -353,7 +354,6 @@ parameter CONF_STR = {
    "P2O[81],Auto Setup Pak Type,On,Off;",
    "P2O[71],ControllerPak,Off,On;",
    "P2O[72],RumblePak,Off,On;",
-   "P2O[73],TransferPak,Off,On;",
    "P2O[74],RTC,Off,On;",
    "P2O[77:75],Save Type,None,EEPROM4,EEPROM16,SRAM32,SRAM96,Flash;",
    
@@ -425,7 +425,7 @@ wire        fixed_blanks_off = status[82];
 wire        clean_hdmi = status[105];
 wire        video_FB_en;
 
-wire [127:0] status_in = {status[127:40],ss_slot,status[37:0]};
+wire [127:0] status_in = status;
 wire [15:0] status_menumask = {14'd0, clean_hdmi, fixed_blanks_off};
 
 wire DIRECT_VIDEO;
@@ -438,8 +438,8 @@ wire        ioctl_wr;
 wire  [7:0] ioctl_index;
 reg         ioctl_wait = 0;
 
-reg [7:0] info_index;
-reg info_req;
+wire [7:0] info_index = 8'd0;
+wire info_req = 1'b0;
 
 wire  [8:0] sd_lba;
 wire        sd_rd;
@@ -454,6 +454,7 @@ wire        img_readonly;
 wire [31:0] img_size;
 
 wire [3:0] rumble;
+wire [64:0] RTC;
 
 hps_io #(.CONF_STR(CONF_STR), .WIDE(1)) hps_io
 (
@@ -511,6 +512,8 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(1)) hps_io
 	.img_mounted(img_mounted),
 	.img_readonly(img_readonly),
 	.img_size(img_size),
+
+	.RTC(RTC),
    
    .direct_video(DIRECT_VIDEO)
 );
@@ -548,52 +551,62 @@ end
 
 ////////////////////////////  ROM download  ///////////////////////////////////
 
-reg [26:0] romcopy_size;
+reg [26:0] romcopy_size = 0;
 reg        romcopy_start = 0;
 
-reg [26:0] ramdownload_wraddr;
-reg [31:0] ramdownload_wrdata;
-reg        ramdownload_wr;
-wire       ramdownload_ready;
 reg        cartN64_download;
-reg        cartGB_download;
+reg        cartDD_download;
+reg        cartDDIpl_download;
+reg        cartDDIplData_download;
 reg        cart_loaded = 0;
+reg        ddDisk_loaded = 0;
+reg        ddIpl_loaded = 0;
 
 localparam CARTN64_START = 16777216;
-localparam CARTGB_START  = 8388608;
+localparam [26:0] N64DD_IPL_SIZE = 27'd4194304;
 
 always @(posedge clk_1x) begin
 
    cartN64_download     <= ioctl_download & (ioctl_index[5:0] == 1);
-   cartGB_download      <= ioctl_download & (ioctl_index[5:0] == 2);
-   
+   cartDD_download      <= ioctl_download & (ioctl_index[5:0] == 3);
+   cartDDIpl_download   <= ioctl_download & (ioctl_index[5:0] == 4);
+   cartDDIplData_download <= ioctl_download & (ioctl_index[5:0] == 5);
+
    ioctl_download_1 <= ioctl_download;
 
    romcopy_start <= 0;
+   ioctl_wait <= 0;
+   if (cartN64_download) begin
+      cart_loaded    <= 0;
+   end
+   if (cartDD_download) begin
+      ddDisk_loaded   <= 0;
+   end
+   if (cartDDIpl_download) begin
+      cart_loaded     <= 0;
+      ddIpl_loaded    <= 0;
+   end
+   if (cartDDIplData_download) begin
+      ddIpl_loaded    <= 0;
+   end
    if (~ioctl_download && ioctl_download_1 && ioctl_index[5:0] == 1) begin
       romcopy_size    <= ioctl_addr;
       romcopy_start   <= 1;
+      cart_loaded     <= |ioctl_addr;
+   end
+   if (~ioctl_download && ioctl_download_1 && ioctl_index[5:0] == 3) begin
+      ddDisk_loaded   <= |ioctl_addr;
+   end
+   if (~ioctl_download && ioctl_download_1 && ioctl_index[5:0] == 4) begin
+      romcopy_size    <= N64DD_IPL_SIZE;
+      romcopy_start   <= 1;
+      cart_loaded     <= 1;
+      ddIpl_loaded    <= 1;
+   end
+   if (~ioctl_download && ioctl_download_1 && ioctl_index[5:0] == 5) begin
+      ddIpl_loaded    <= |ioctl_addr;
    end
 
-	ramdownload_wr <= 0;
-	if(cartN64_download) begin
-      cart_loaded <= 1;
-   end else if(cartGB_download) begin
-      if (ioctl_wr) begin
-         if(~ioctl_addr[1]) begin
-            ramdownload_wrdata[15:0] <= ioctl_dout;
-            ramdownload_wraddr       <= ioctl_addr[26:0] + CARTGB_START[26:0];                                  
-         end else begin
-            ramdownload_wrdata[31:16] <= ioctl_dout;
-            ramdownload_wr            <= 1;
-            ioctl_wait                <= 1;
-         end
-      end
-      if(ramdownload_ready) ioctl_wait <= 0;
-   end else begin 
-      ioctl_wait <= 0;
-	end
-   
 end
 
 // Pop OSD menu if no rom has been loaded automatically
@@ -640,12 +653,12 @@ sdram sdram
 	.ch1_ready(sdram_done),
 	.ch1_reqprocessed(sdram_reqprocessed),
 
-	.ch2_addr (ramdownload_wraddr),
-	.ch2_din  (ramdownload_wrdata),
+	.ch2_addr (27'b0),
+	.ch2_din  (32'b0),
 	.ch2_dout (),
-	.ch2_req  (ramdownload_wr),
+	.ch2_req  (1'b0),
 	.ch2_rnw  (1'b0),
-	.ch2_ready(ramdownload_ready),
+	.ch2_ready(),
 
 	.ch3_addr(27'b0),
 	.ch3_din(16'b0),
@@ -654,38 +667,6 @@ sdram sdram
 	.ch3_rnw(1'b1),
 	.ch3_ready()
 );
-
-///////////////////////////  SAVESTATE  /////////////////////////////////
-
-wire [1:0] ss_slot;
-wire [7:0] ss_info;
-wire ss_save, ss_load, ss_info_req;
-wire statusUpdate;
-
-savestate_ui savestate_ui
-(
-	.clk            (clk_1x        ),
-	.ps2_key        (ps2_key[10:0] ),
-	.allow_ss       (cart_loaded   ),
-	//.joySS          (joy_unmod[14] ),
-	.joySS          (0             ),
-	.joyRight       (joy_unmod[0]  ),
-	.joyLeft        (joy_unmod[1]  ),
-	.joyDown        (joy_unmod[2]  ),
-	.joyUp          (joy_unmod[3]  ),
-	.joyRewind      (0             ),
-	.rewindEnable   (0             ), 
-	.status_slot    (status[39:38] ),
-	.autoincslot    (status[3]     ),
-	.OSD_saveload   (status[18:17] ),
-	.ss_save        (ss_save       ),
-	.ss_load        (ss_load       ),
-	.ss_info_req    (info_req      ),
-	.ss_info        (info_index    ),
-	.statusUpdate   (statusUpdate  ),
-	.selected_slot  (ss_slot       )
-);
-defparam savestate_ui.INFO_TIMEOUT_BITS = 25;
 
 ///////////////////////// SAVE/LOAD  /////////////////////////////
 
@@ -782,10 +763,10 @@ n64top
    .readZ(!status[15]),
    
    // savestates              
-   .increaseSSHeaderCount (!status[46]),
-   .save_state            (0), //(ss_save),
-   .load_state            (ss_load),
-   .savestate_number      (ss_slot),
+   .increaseSSHeaderCount (1'b0),
+   .save_state            (1'b0),
+   .load_state            (1'b0),
+   .savestate_number      (0),
    .state_loaded          (),
    
    // PIFROM download port
@@ -808,6 +789,9 @@ n64top
    .cartAvailable     (cart_loaded       ),
    .romcopy_start     (romcopy_start     ),
    .romcopy_size      (romcopy_size      ),
+   .ddDiskAvailable   (ddDisk_loaded     ),
+   .ddIplAvailable    (ddIpl_loaded      ),
+   .hpsRTC            (RTC               ),
    
    .sdram_ena         (sdram_ena         ),
    .sdram_rnw         (sdram_rnw         ),
@@ -880,7 +864,6 @@ n64top
    // Saves
    .SAVETYPE         (status[77:75]),
    .CONTROLLERPAK    (status[71]),
-   .TRANSFERPAK      (status[73]),
    
    .save             (bk_save),
    .load             (bk_load),

@@ -12,7 +12,7 @@ entity Gamepad is
       
       second_ena           : in  std_logic;
      
-      PADTYPE              : in  std_logic_vector(2 downto 0); -- 000 = normal, 001 = empty, 010 = cpak, 011 = rumble, 100 = snac, 101 = transfer pak, 110 = keyboard
+      PADTYPE              : in  std_logic_vector(2 downto 0); -- 000 = normal, 001 = empty, 010 = cpak, 011 = rumble, 100 = snac, 101 = keyboard
       padIndex             : in  unsigned(1 downto 0);
       MOUSETYPE            : in  std_logic_vector(2 downto 0); -- 00 - mouse off, 001 : ABZ, 010: ZAB, 011: ZBA
       PADDPADSWAP          : in  std_logic;
@@ -75,7 +75,6 @@ entity Gamepad is
       rumble               : out std_logic_vector(3 downto 0) := (others => '0');
       
       cpak_change          : out std_logic := '0';
-      tpak_change          : out std_logic := '0';
       
       sdram_request        : out std_logic := '0';
       sdram_rnw            : out std_logic := '0'; 
@@ -170,29 +169,6 @@ architecture arch of Gamepad is
    signal pakcrc_value              : std_logic_vector(7 downto 0);
    signal pakcrc_last               : std_logic;
    
-   -- tpak
-   signal trigger_tpak_read         : std_logic;
-   signal trigger_tpak_write        : std_logic;
-   
-   signal tpak_response             : std_logic_vector(7 downto 0);
-   signal tpak_accessSDRAMasRAM     : std_logic;
-   signal tpak_addrSDRam            : unsigned(22 downto 0);
-   signal tpak_readZero             : std_logic;
-   signal tpak_readZeroLast         : std_logic := '0';
-   
-   signal tpak_addrGB               : unsigned(15 downto 0);
-   
-   signal tpak_enable               : std_logic := '0';
-   signal tpakAccessMode            : std_logic := '0';
-	signal tpakAccessModeOr          : std_logic_vector(7 downto 0) := x"44";
-	signal tpakRamEnable             : std_logic := '0';
-	signal tpakCurrentBank           : unsigned(1 downto 0) := "00";
-	signal tpakCurrentRomBank        : unsigned(8 downto 0) := 9x"001";
-	signal tpakCurrentRamBank        : unsigned(3 downto 0) := x"0";
-
-   constant tpakMaxRomBank          : integer := 64; -- todo: allow different GB roms/MBC
-   constant tpakMaxRamBank          : integer := 4; -- todo: allow different GB roms/MBC
-   
    -- Mouse
    signal prevMouseEvent            : std_logic := '0';
    
@@ -258,7 +234,6 @@ begin
          toPIF_ena     <= '0';
          sdram_request <= '0';
          cpak_change   <= '0';
-         tpak_change   <= '0';
          
          if (slowNextByteEna = '1') then
             slowcnt <= (others => '0');
@@ -352,7 +327,7 @@ begin
                   end if;
                   toPIF_ena  <= '1';
                end if;
-               if (PADTYPE = "110") then
+               if (PADTYPE = "101") then
                   toPIF_data <= x"00"; -- Keyboard type (0x00 0x02 0x00)
                else
                   toPIF_data <= x"05";
@@ -368,7 +343,7 @@ begin
                   toPIF_ena  <= '1';
                end if;
                
-               if (PADTYPE = "110") then
+               if (PADTYPE = "101") then
                   toPIF_data <= x"02"; -- Keyboard type (0x00 0x02 0x00)
                else
                   toPIF_data <= x"00";
@@ -385,9 +360,9 @@ begin
                   toPIF_ena  <= '1';
                end if;
                
-               if (PADTYPE = "010" or PADTYPE = "011" or PADTYPE = "101") then -- cpak or rpak or tpak
+               if (PADTYPE = "010" or PADTYPE = "011") then -- cpak or rpak
                   toPIF_data <= x"01";
-               elsif (PADTYPE = "110") then
+               elsif (PADTYPE = "101") then
                   toPIF_data <= x"00"; -- Keyboard type (0x00 0x02 0x00)
                else
                   toPIF_data <= x"02";
@@ -655,20 +630,11 @@ begin
                   end if;
 
                when PAKREAD_READSDRAM => 
-                  tpak_readZeroLast <= tpak_readZero;
-                  if (PADTYPE = "010" or PADTYPE = "011" or PADTYPE = "101") then
+                  if (PADTYPE = "010" or PADTYPE = "011") then
                      state           <= PAKREAD_WRITEPIF;
                      sdram_request   <= '1';
                      sdram_rnw       <= '1';
-                     if (PADTYPE = "101") then
-                        if (tpak_accessSDRAMasRAM = '1') then
-                           sdram_address   <= resize(tpak_addrSDRam(22 downto 2) & "00", 27) + to_unsigned(16#500000#, 27);
-                        else
-                           sdram_address   <= resize(tpak_addrSDRam(22 downto 2) & "00", 27) + to_unsigned(16#800000#, 27);
-                        end if;
-                     else
-                        sdram_address   <= resize(command_padindex & unsigned(pakaddr(14 downto 2)) & "00", 27) + to_unsigned(16#500000#, 27);
-                     end if;
+                     sdram_address   <= resize(command_padindex & unsigned(pakaddr(14 downto 2)) & "00", 27) + to_unsigned(16#500000#, 27);
                   else
                      toPIF_timeout   <= '1';
                      stateNext       <= IDLE;
@@ -702,9 +668,6 @@ begin
                            toPIF_data <= sdram_dataRead8; 
                            pakvalue   <= sdram_dataRead8;
                         end if;
-                     elsif (PADTYPE = "101") then -- tpak
-                        toPIF_data <= tpak_response;
-                        pakvalue   <= tpak_response;
                      end if;
                      pakaddr(4 downto 0) <= std_logic_vector(unsigned(pakaddr(4 downto 0)) + 1);
                   end if;
@@ -743,20 +706,10 @@ begin
                            sdram_request   <= '1';
                            sdram_wait      <= '1';
                         end if;
-                     elsif (PADTYPE = "101") then -- tpak
-                        if (tpak_accessSDRAMasRAM = '1' and tpak_readZero = '0') then
-                           tpak_change     <= '1';
-                           sdram_request   <= '1';
-                           sdram_wait      <= '1';
-                        end if;
                      end if;
                   end if;
                   
-                  if (PADTYPE = "101") then -- tpak
-                     sdram_address   <= resize(tpak_addrSDRam(22 downto 2) & "00", 27) + to_unsigned(16#500000#, 27);
-                  else
-                     sdram_address   <= resize(command_padindex & unsigned(pakaddr(14 downto 2)) & "00", 27) + to_unsigned(16#500000#, 27);
-                  end if;
+                  sdram_address   <= resize(command_padindex & unsigned(pakaddr(14 downto 2)) & "00", 27) + to_unsigned(16#500000#, 27);
                   
                   sdram_rnw       <= '0';
                   sdram_dataWrite <= toPad_data & toPad_data & toPad_data & toPad_data;
@@ -794,7 +747,7 @@ begin
                      toPad_ready    <= '0';
                      stateNext      <= IDLE;
                      toPIF_data     <= pakcrc_value;
-                     if (PADTYPE = "010" or PADTYPE = "011" or PADTYPE = "101") then
+                     if (PADTYPE = "010" or PADTYPE = "011") then
                         toPIF_ena       <= '1';
                      else
                         toPIF_timeout   <= '1';
@@ -822,151 +775,6 @@ begin
          end if;
          
       end if; -- clock
-   end process;
-   
-   
-   trigger_tpak_read  <= '1' when (state = PAKREAD_WRITEPIF and PADTYPE = "101" and sdram_done = '1') else '0';
-   trigger_tpak_write <= '1' when (state = PAKWRITE_READPIF and PADTYPE = "101" and toPad_ena = '1' and pakaddr(4 downto 0) = 5x"0") else '0';
-   
-   -- reading
-   process(all)
-   begin
-      tpak_response <= x"00";
-      case (pakaddr(15 downto 12)) is
-      
-         when x"8" => 
-            if (tpak_enable = '1') then
-               tpak_response <= x"84";
-            end if;
-            
-         when x"B" =>
-            if (tpak_enable = '1') then
-               if (tpakAccessMode = '1') then
-                  tpak_response <= x"89" or tpakAccessModeOr;
-               else
-                  tpak_response <= x"80" or tpakAccessModeOr;
-               end if;
-            end if;
-            
-         when x"C" | x"D" | x"E" | x"F" =>
-            if (tpak_readZeroLast = '0') then
-               tpak_response <= sdram_dataRead8;
-            end if;
-            
-         when others => null;
-      end case;
-   
-   end process;
-   
-   -- writing
-   process (clk1x)
-   begin
-      if rising_edge(clk1x) then
-      
-         if (trigger_tpak_read = '1' and pakaddr(15 downto 12) = x"B" and tpak_enable = '1') then
-            tpakAccessModeOr <= x"00";
-         end if;
-   
-         if (trigger_tpak_write = '1') then
-         
-             case (pakaddr(15 downto 12)) is
-             
-               when x"8" => 
-                  if (toPad_data = x"FE") then
-                     tpak_enable <= '0';
-                  end if;
-                  if (toPad_data = x"84") then
-                     tpak_enable <= '1';
-                  end if;
-                  
-               when x"A" => 
-                  tpakCurrentBank <= unsigned(toPad_data(1 downto 0));
-                  
-               when x"B" => 
-                  tpakAccessMode   <= toPad_data(0);  
-                  tpakAccessModeOr <= x"04";
-                  
-               when others => null;
-            end case;
-         end if;
-         
-         if (reset = '1') then
-            tpak_enable        <= '0';
-            tpakAccessMode     <= '0';
-            tpakAccessModeOr   <= x"44";
-            tpakCurrentBank    <= "00";
-         end if;
-      
-      end if;
-   end process;
-   
-   tpak_addrGB <= tpakCurrentBank & unsigned(pakaddr(13 downto 0));
-   
-   -- MBC 5
-   process(all)
-   begin
-      tpak_accessSDRAMasRAM <= '0';
-      tpak_addrSDRam        <= resize(tpak_addrGB(13 downto 0), tpak_addrSDRam'length);
-      tpak_readZero         <= '0';
-      
-      if (pakaddr(15 downto 14) = "11") then
-         case (tpak_addrGB(15 downto 12)) is
-         
-            when x"0" | x"1" | x"2" | x"3" => null; -- default case
-               
-            when x"4" | x"5" | x"6" | x"7" => 
-               tpak_addrSDRam   <= resize(tpakCurrentRomBank & tpak_addrGB(13 downto 0), tpak_addrSDRam'length);
-               if (tpakCurrentRomBank >= tpakMaxRomBank) then
-                  tpak_readZero <= '1';
-               end if;
-   
-            when x"A" | x"B" =>          
-               tpak_accessSDRAMasRAM <= '1';
-               tpak_addrSDRam   <= resize(tpakCurrentRamBank & tpak_addrGB(12 downto 0), tpak_addrSDRam'length);
-               if (tpakCurrentRomBank >= tpakMaxRomBank) then
-                  tpak_readZero <= '1';
-               end if;
-               
-            when others => null;
-         end case;
-      end if;   
-   
-   end process;
-   
-   process (clk1x)
-   begin
-      if rising_edge(clk1x) then
-      
-         if (trigger_tpak_write = '1' and pakaddr(15 downto 14) = "11") then
-         
-             case (tpak_addrGB(15 downto 12)) is
-             
-               when x"0" | x"1" => 
-                  tpakRamEnable <= '0';
-                  if (toPad_data = x"0A") then
-                     tpakRamEnable <= '1'; -- todo: should be used? check with gameboy core
-                  end if;
-                  
-               when x"2" => 
-                  tpakCurrentRomBank(7 downto 0) <= unsigned(toPad_data);
-               
-               when x"3" => 
-                  tpakCurrentRomBank(8) <= toPad_data(0);
-               
-               when x"4" | x"5" => 
-                  tpakCurrentRamBank <= unsigned(toPad_data(3 downto 0));
-                  
-               when others => null;
-            end case;
-         end if;
-         
-         if (reset = '1') then
-            tpakRamEnable      <= '0';
-            tpakCurrentRomBank <= 9x"001";
-            tpakCurrentRamBank <= x"0";
-         end if;
-      
-      end if;
    end process;
    
 end architecture;
