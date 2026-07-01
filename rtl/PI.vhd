@@ -281,6 +281,7 @@ architecture arch of PI is
    signal dd_store_next_sector: unsigned(7 downto 0) := (others => '0');
    signal dd_store_set_data   : std_logic := '0';
    signal dd_store_stop       : std_logic := '0';
+   signal dd_write_sector_ready: std_logic := '0';
    signal dd_dirty_addr       : unsigned(27 downto 0) := (others => '0');
    signal dd_cmd_interrupt_visible : std_logic;
    signal dd_attached        : std_logic;
@@ -585,6 +586,7 @@ begin
             dd_store_next_sector    <= (others => '0');
             dd_store_set_data       <= '0';
             dd_store_stop           <= '0';
+            dd_write_sector_ready   <= '0';
             dd_dirty_addr           <= (others => '0');
  
          elsif (ce = '1') then
@@ -609,11 +611,13 @@ begin
                dd_bm_stop_reason     <= x"1";
                dd_sector_advance_pending <= '0';
                dd_sector_advance_counter <= (others => '0');
+               dd_write_sector_ready <= '0';
             end if;
             dd_disk_available_d <= ddDiskAvailable;
             if (ddDiskAvailable = '0') then
                dd_disk_changed <= '0';
                dd_motor_started <= '0';
+               dd_write_sector_ready <= '0';
             end if;
 
             if (dd_rtc_seeded = '0') then
@@ -823,7 +827,13 @@ begin
                   
                   -- ares bmRequest: the single buffer-manager service point. Armed by
                   -- BM start writes (50k delay) and ASIC_STATUS interrupt ACKs (38k delay).
-                  if (dd_sector_advance_pending = '1' and dd_sector_advance_counter = 0) then
+                  -- SummerCart's MCU does not consume a write buffer until the N64
+                  -- touches its terminal halfword. Keep an expired ares-style timer
+                  -- pending until that transfer-complete indication is observed.
+                  if (dd_sector_advance_pending = '1' and dd_sector_advance_counter = 0 and
+                      (dd_bm_running = '0' or dd_bm_read_mode = '1' or
+                       dd_current_sector = 0 or dd_current_sector = DD_SECTOR_BLOCK_BASE or
+                       dd_write_sector_ready = '1')) then
                      dd_sector_advance_pending <= '0';
                      if (dd_bm_running = '0') then
                         dd_bm_interrupt <= '0';
@@ -893,6 +903,7 @@ begin
                            end if;
                            if (dd_start_sector > 0 and dd_start_sector <= DD_SECTOR_USER_END and
                                ddDiskAvailable = '1') then
+                              dd_write_sector_ready <= '0';
                               dd_store_addr        <= dd_sector_ddr_address(dd_head_track, dd_block_sel, dd_start_sector - 1);
                               dd_dirty_addr        <= dd_sector_ddr_address(dd_head_track, dd_block_sel, to_unsigned(0, 8)) + DD_DIRTY_FLAG_OFFSET;
                               dd_store_count       <= 0;
@@ -1015,6 +1026,9 @@ begin
                            else
                               dd_sector_wren_b(3 downto 2) <= "11";
                            end if;
+                           if dd_offset(7 downto 2) = dd_sector_size(7 downto 2) then
+                              dd_write_sector_ready <= '1';
+                           end if;
                         else
                            dd_wdata := bus_cart_dataWrite(31 downto 16);
                            case to_integer(dd_asic_reg_offset(dd_offset)) is
@@ -1116,11 +1130,13 @@ begin
                                     dd_bm_micro_error   <= '0';
                                     dd_sector_advance_pending <= '0';
                                     dd_sector_advance_counter <= (others => '0');
+                                    dd_write_sector_ready <= '0';
                                  end if;
                                  if (dd_wdata(15) = '1') then
                                     if (ddDiskAvailable = '1') then
                                        dd_bm_running     <= '1';
                                        dd_bm_stop_reason <= (others => '0');
+                                       dd_write_sector_ready <= '0';
                                        dd_sector_advance_pending <= '1';
                                        dd_sector_advance_counter <= DD_BM_START_DELAY_CLK1X;
                                     else
@@ -1154,6 +1170,7 @@ begin
                                     dd_bm_c1_double     <= '0';
                                     dd_sector_advance_pending <= '0';
                                     dd_sector_advance_counter <= (others => '0');
+                                    dd_write_sector_ready <= '0';
                                  end if;
 
                               when 16#528# =>
@@ -1653,6 +1670,9 @@ begin
                               when "11" => dd_sector_wren_b(3) <= '1';
                               when others => null;
                            end case;
+                           if dd_offset(7 downto 1) = dd_sector_size(7 downto 1) then
+                              dd_write_sector_ready <= '1';
+                           end if;
                         else
                            -- DMA writes through the ASIC window are visible on hardware, but treating
                            -- the whole DMA stream as register writes clobbers live BM geometry.
@@ -1745,6 +1765,13 @@ begin
                   state           <= DD_STORE_WAIT;
 
                when DD_STORE_WAIT =>
+                  -- DDR3Mux queues only the request bit. Keep the write controls
+                  -- stable until it services the queued request and raises done.
+                  ddram_rnw       <= '0';
+                  ddram_address   <= dd_store_addr + to_unsigned(dd_store_count * 8, 28);
+                  ddram_writeMask <= x"FF";
+                  ddram_dataWrite <= dd_sector_data_out_a3 & dd_sector_data_out_a2 &
+                                     dd_sector_data_out_a1 & dd_sector_data_out_a0;
                   if (ddram_done = '1') then
                      if (dd_store_count = 31) then
                         state <= DD_DIRTY_WRITE;
@@ -1765,6 +1792,10 @@ begin
                   state           <= DD_DIRTY_WAIT;
 
                when DD_DIRTY_WAIT =>
+                  ddram_rnw       <= '0';
+                  ddram_address   <= dd_dirty_addr;
+                  ddram_writeMask <= x"FF";
+                  ddram_dataWrite <= DD_DIRTY_MAGIC;
                   if (ddram_done = '1') then
                      dd_current_sector    <= dd_store_next_sector;
                      dd_bm_transfer_data  <= dd_store_set_data;
