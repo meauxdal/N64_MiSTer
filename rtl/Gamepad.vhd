@@ -12,7 +12,7 @@ entity Gamepad is
       
       second_ena           : in  std_logic;
      
-      PADTYPE              : in  std_logic_vector(2 downto 0); -- 000 = normal, 001 = empty, 010 = cpak, 011 = rumble, 100 = snac, 101 = keyboard
+      PADTYPE              : in  std_logic_vector(2 downto 0); -- 000 = normal, 001 = empty, 010 = cpak, 011 = rumble, 100 = snac, 101 = transfer pak, 110 = keyboard
       padIndex             : in  unsigned(1 downto 0);
       MOUSETYPE            : in  std_logic_vector(2 downto 0); -- 00 - mouse off, 001 : ABZ, 010: ZAB, 011: ZBA
       PADDPADSWAP          : in  std_logic;
@@ -327,7 +327,7 @@ begin
                   end if;
                   toPIF_ena  <= '1';
                end if;
-               if (PADTYPE = "101") then
+               if (PADTYPE = "110") then
                   toPIF_data <= x"00"; -- Keyboard type (0x00 0x02 0x00)
                else
                   toPIF_data <= x"05";
@@ -343,7 +343,7 @@ begin
                   toPIF_ena  <= '1';
                end if;
                
-               if (PADTYPE = "101") then
+               if (PADTYPE = "110") then
                   toPIF_data <= x"02"; -- Keyboard type (0x00 0x02 0x00)
                else
                   toPIF_data <= x"00";
@@ -362,7 +362,7 @@ begin
                
                if (PADTYPE = "010" or PADTYPE = "011") then -- cpak or rpak
                   toPIF_data <= x"01";
-               elsif (PADTYPE = "101") then
+               elsif (PADTYPE = "110") then
                   toPIF_data <= x"00"; -- Keyboard type (0x00 0x02 0x00)
                else
                   toPIF_data <= x"02";
