@@ -547,7 +547,7 @@ begin
             dd_hard_reset           <= '1';
             dd_disk_inserted        <= ddDiskAvailable;
             dd_disk_changed         <= ddDiskAvailable;
-            dd_disk_available_d     <= '0';
+            dd_disk_available_d     <= ddDiskAvailable;
             dd_head_retracted       <= '1';
             dd_spindle_stopped      <= '1';
             dd_motor_started        <= '0';
@@ -598,7 +598,10 @@ begin
 
                dd_disk_inserted    <= ddDiskAvailable;
                if (ddDiskAvailable = '1' and dd_disk_available_d = '0') then
-                  dd_disk_changed       <= '1';
+                  -- SummerCart INSERTED state does not assert DISK_CHANGED.
+                  -- Keep the reset-time flag for media present at power-on, but
+                  -- present a newly inserted disk cleanly to an already-running IPL.
+                  dd_disk_changed       <= '0';
                   dd_motor_started      <= '0';
                   dd_bm_interrupt       <= '0';
                dd_bm_transfer_data   <= '0';
