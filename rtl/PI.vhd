@@ -21,6 +21,7 @@ entity PI is
       cartSize             : in  unsigned(26 downto 0);
       ddDiskAvailable      : in  std_logic;
       ddIplAvailable       : in  std_logic;
+      ddDevMode            : in  std_logic;
       hpsRTC               : in  std_logic_vector(64 downto 0);
 
       irq_out              : out std_logic := '0';
@@ -272,7 +273,6 @@ architecture arch of PI is
    signal dd_seek_pending     : std_logic := '0';
    signal dd_seek_counter     : unsigned(27 downto 0) := (others => '0');
    signal dd_seek_target      : unsigned(12 downto 0) := (others => '0');
-   signal dd_drive_id         : std_logic_vector(15 downto 0) := x"0003";
    signal dd_load_addr        : unsigned(27 downto 0) := (others => '0');
    signal dd_load_count       : integer range 0 to 31 := 0;
    signal dd_load_total       : integer range 0 to 32 := 0;
@@ -422,7 +422,10 @@ architecture arch of PI is
             data := std_logic_vector(dd_current_sector) & x"C3";
          when 16#528# => data := x"00" & std_logic_vector(dd_sector_size);
          when 16#52C# | 16#530# => data := std_logic_vector(dd_sectors_in_block) & std_logic_vector(dd_sector_size_full);
-         when 16#540# => data := dd_drive_id;
+         when 16#540# =>
+            if (ddDevMode = '1') then data := x"0004";
+            else data := x"0003";
+            end if;
          when others  => data := (others => '0');
       end case;
       return data;
@@ -577,7 +580,6 @@ begin
             dd_seek_pending         <= '0';
             dd_seek_counter         <= (others => '0');
             dd_seek_target          <= (others => '0');
-            dd_drive_id             <= x"0003";
             dd_load_addr            <= (others => '0');
             dd_load_count           <= 0;
             dd_load_total           <= 0;

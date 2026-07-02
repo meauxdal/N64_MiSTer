@@ -91,6 +91,7 @@ entity n64top is
       romcopy_size            : in  unsigned(26 downto 0);
       ddDiskAvailable         : in  std_logic;
       ddIplAvailable          : in  std_logic;
+      ddDevMode               : in  std_logic;
       hpsRTC                  : in  std_logic_vector(64 downto 0);
       
       sdram_ena               : out std_logic;
@@ -1029,6 +1030,7 @@ begin
       cartSize             => romcopy_size,
       ddDiskAvailable      => ddDiskAvailable,
       ddIplAvailable       => ddIplAvailable,
+      ddDevMode            => ddDevMode,
       hpsRTC               => hpsRTC,
 
       irq_out              => irqVector(4),

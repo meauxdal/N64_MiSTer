@@ -792,6 +792,7 @@ n64top
    .romcopy_size      (romcopy_size      ),
    .ddDiskAvailable   (ddDisk_loaded     ),
    .ddIplAvailable    (ddIpl_loaded      ),
+   .ddDevMode         (status[107]       ),
    .hpsRTC            (RTC               ),
    
    .sdram_ena         (sdram_ena         ),
@@ -1000,4 +1001,3 @@ N64_SNAC N64_SNAC_inst
 );
 
 endmodule
-        
