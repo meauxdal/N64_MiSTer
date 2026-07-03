@@ -200,10 +200,13 @@ architecture arch of PI is
    -- 0x6000 bytes but only 0x000..0x54FF hold sector data, so 0x5F00 is free.
    constant DD_DIRTY_FLAG_OFFSET : unsigned(27 downto 0) := to_unsigned(16#5F00#, 28);
    constant DD_DIRTY_MAGIC       : std_logic_vector(63 downto 0) := x"D1D1D1D1D1D1D1D1";
-   -- ares starts its 38,000-clock next-BM timer at ASIC_STATUS ack.
-   constant DD_BM_NEXT_DELAY_CLK1X: unsigned(15 downto 0) := to_unsigned(38000, 16);
-   -- ares schedules the first BM request 50,000 clocks after a BM start write.
-   constant DD_BM_START_DELAY_CLK1X: unsigned(15 downto 0) := to_unsigned(50000, 16);
+   -- Ares expresses these delays on the N64's 187.5 MHz system timeline.
+   -- Its next-sector event includes work that PI_DD performs serially through
+   -- the PI/DDR path, so use the measured residual delay needed to match the
+   -- real drive's end-to-end sector cadence. The initial delay only needs the
+   -- 187.5-to-62.5 MHz clock-domain conversion.
+   constant DD_BM_NEXT_DELAY_CLK1X : unsigned(15 downto 0) := to_unsigned(6849, 16);
+   constant DD_BM_START_DELAY_CLK1X: unsigned(15 downto 0) := to_unsigned(16667, 16);
    -- ares track geometry: 85 user sectors, last C2 sector index, block 1 sector base.
    constant DD_SECTOR_USER_END  : unsigned(7 downto 0) := to_unsigned(16#55#, 8);
    constant DD_SECTOR_C2_LAST   : unsigned(7 downto 0) := to_unsigned(16#58#, 8);
