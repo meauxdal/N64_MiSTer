@@ -70,13 +70,13 @@ architecture arch of PI_DD is
    -- the PI/DDR path, so use the measured residual delay needed to match the
    -- real drive's end-to-end sector cadence. The initial delay only needs the
    -- 187.5-to-62.5 MHz clock-domain conversion.
-   constant DD_BM_NEXT_DELAY_CLK1X : unsigned(15 downto 0) := to_unsigned(6849, 16);
-   constant DD_BM_START_DELAY_CLK1X: unsigned(15 downto 0) := to_unsigned(16667, 16);
+   constant DD_BM_NEXT_DELAY_CLK1X : unsigned(14 downto 0) := to_unsigned(6849, 15);
+   constant DD_BM_START_DELAY_CLK1X: unsigned(14 downto 0) := to_unsigned(16667, 15);
    constant DD_SECTOR_USER_END   : unsigned(7 downto 0) := to_unsigned(16#55#, 8);
    constant DD_SECTOR_C2_LAST    : unsigned(7 downto 0) := to_unsigned(16#58#, 8);
    constant DD_SECTOR_BLOCK_BASE : unsigned(7 downto 0) := to_unsigned(16#5A#, 8);
-   constant DD_SEEK_DELAY_CLK1X  : unsigned(27 downto 0) := to_unsigned(1000000, 28);
-   constant DD_SEEK_SPINUP_DELAY_CLK1X: unsigned(27 downto 0) := to_unsigned(125000000, 28);
+   constant DD_SEEK_DELAY_CLK1X  : unsigned(26 downto 0) := to_unsigned(1000000, 27);
+   constant DD_SEEK_SPINUP_DELAY_CLK1X: unsigned(26 downto 0) := to_unsigned(125000000, 27);
 
    type tState is
    (
@@ -147,13 +147,13 @@ architecture arch of PI_DD is
    signal bm_stop_reason    : std_logic_vector(3 downto 0) := (others => '0');
    signal current_sector    : unsigned(7 downto 0) := (others => '0');
    signal sector_advance_pending : std_logic := '0';
-   signal sector_advance_counter : unsigned(15 downto 0) := (others => '0');
+   signal sector_advance_counter : unsigned(14 downto 0) := (others => '0');
    signal sector_size       : unsigned(7 downto 0) := x"E7";
    signal sector_size_full  : unsigned(7 downto 0) := x"E7";
    signal sectors_in_block  : unsigned(7 downto 0) := x"59";
    signal head_track        : unsigned(12 downto 0) := (others => '0');
    signal seek_pending      : std_logic := '0';
-   signal seek_counter      : unsigned(27 downto 0) := (others => '0');
+   signal seek_counter      : unsigned(26 downto 0) := (others => '0');
    signal seek_target       : unsigned(12 downto 0) := (others => '0');
    signal load_addr         : unsigned(27 downto 0) := (others => '0');
    signal load_count        : integer range 0 to 31 := 0;
@@ -299,7 +299,7 @@ architecture arch of PI_DD is
 
    function service_due(
       pending      : std_logic;
-      counter      : unsigned(15 downto 0);
+      counter      : unsigned(14 downto 0);
       running      : std_logic;
       read_mode    : std_logic;
       sector       : unsigned(7 downto 0);
@@ -509,31 +509,12 @@ begin
             end if;
 
             if rtc_seeded = '0' then
-               if is_bcd(hpsRTC(7 downto 0)) and is_bcd(hpsRTC(15 downto 8)) and
-                  is_bcd(hpsRTC(23 downto 16)) and is_bcd(hpsRTC(31 downto 24)) and
-                  is_bcd(hpsRTC(39 downto 32)) and is_bcd(hpsRTC(47 downto 40)) then
-                  rtc_second := hpsRTC(7 downto 0);
-                  rtc_minute := hpsRTC(15 downto 8);
-                  rtc_hour := hpsRTC(23 downto 16);
-                  rtc_day := hpsRTC(31 downto 24);
-                  rtc_month := hpsRTC(39 downto 32);
-                  rtc_year := hpsRTC(47 downto 40);
-                  if unsigned(rtc_second) <= unsigned'(x"59") and
-                     unsigned(rtc_minute) <= unsigned'(x"59") and
-                     unsigned(rtc_hour) <= unsigned'(x"23") and
-                     unsigned(rtc_month) >= unsigned'(x"01") and
-                     unsigned(rtc_month) <= unsigned'(x"12") then
-                     rtc_month_days := days_in_month_bcd(rtc_year, rtc_month);
-                     if unsigned(rtc_day) >= unsigned'(x"01") and
-                        unsigned(rtc_day) <= unsigned(rtc_month_days) then
-                        rtc_minute_second <= hpsRTC(15 downto 8) & hpsRTC(7 downto 0);
-                        rtc_day_hour <= hpsRTC(31 downto 24) & hpsRTC(23 downto 16);
-                        rtc_year_month <= hpsRTC(47 downto 40) & hpsRTC(39 downto 32);
-                        rtc_seeded <= '1';
-                        rtc_seed_applied := true;
-                     end if;
-                  end if;
-               end if;
+               -- Main sends a complete BCD RTC value before releasing reset.
+               rtc_minute_second <= hpsRTC(15 downto 0);
+               rtc_day_hour <= hpsRTC(31 downto 16);
+               rtc_year_month <= hpsRTC(47 downto 32);
+               rtc_seeded <= '1';
+               rtc_seed_applied := true;
             end if;
 
             if second_ena = '1' and not rtc_seed_applied then
