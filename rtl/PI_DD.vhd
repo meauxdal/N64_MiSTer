@@ -144,7 +144,6 @@ architecture arch of PI_DD is
    signal bm_read_mode      : std_logic := '0';
    signal bm_blocks         : std_logic := '0';
    signal bm_reset_latched  : std_logic := '0';
-   signal bm_stop_reason    : std_logic_vector(3 downto 0) := (others => '0');
    signal current_sector    : unsigned(7 downto 0) := (others => '0');
    signal sector_advance_pending : std_logic := '0';
    signal sector_advance_counter : unsigned(14 downto 0) := (others => '0');
@@ -455,7 +454,6 @@ begin
             bm_read_mode <= '0';
             bm_blocks <= '0';
             bm_reset_latched <= '0';
-            bm_stop_reason <= (others => '0');
             current_sector <= (others => '0');
             sector_advance_pending <= '0';
             sector_advance_counter <= (others => '0');
@@ -496,7 +494,6 @@ begin
                bm_read_mode <= '0';
                bm_blocks <= '0';
                bm_reset_latched <= '0';
-               bm_stop_reason <= x"1";
                sector_advance_pending <= '0';
                sector_advance_counter <= (others => '0');
                write_sector_ready <= '0';
@@ -663,7 +660,6 @@ begin
                                  end if;
                               else
                                  bm_running <= '0';
-                                 bm_stop_reason <= x"7";
                               end if;
                               bm_interrupt <= '1';
                            else
@@ -698,7 +694,6 @@ begin
                               bm_transfer_data <= request_user;
                               if request_stop = '1' then
                                  bm_running <= '0';
-                                 bm_stop_reason <= x"5";
                               end if;
                               current_sector <= next_sector;
                               bm_interrupt <= '1';
@@ -803,7 +798,6 @@ begin
                               elsif bm_reset_latched = '1' then
                                  bm_reset_latched <= '0';
                                  bm_running <= '0';
-                                 bm_stop_reason <= x"2";
                                  bm_interrupt <= '0';
                                  bm_transfer_data <= '0';
                                  bm_transfer_c2 <= '0';
@@ -815,7 +809,6 @@ begin
                               if write_data(15) = '1' then
                                  if diskAvailable = '1' then
                                     bm_running <= '1';
-                                    bm_stop_reason <= (others => '0');
                                     write_sector_ready <= '0';
                                     sector_advance_pending <= '1';
                                     sector_advance_counter <= DD_BM_START_DELAY_CLK1X;
@@ -838,7 +831,6 @@ begin
                                  bm_running <= '0';
                                  bm_read_mode <= '0';
                                  bm_blocks <= '0';
-                                 bm_stop_reason <= x"3";
                                  bm_interrupt <= '0';
                                  bm_transfer_data <= '0';
                                  bm_transfer_c2 <= '0';
@@ -945,7 +937,6 @@ begin
                      bm_transfer_data <= store_set_data;
                      if store_stop = '1' then
                         bm_running <= '0';
-                        bm_stop_reason <= x"5";
                      end if;
                      bm_interrupt <= '1';
                      state <= IDLE;
