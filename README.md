@@ -26,14 +26,15 @@ SDRAM of any size is required.
 
 ## BIOS
 
-Four ROMs are required: the Nintendo 64 PIF ROMs and Nintendo 64DD IPL ROMs. BIOS files are not included with the core.
+Five ROMs are required: the Nintendo 64 PIF ROMs and Nintendo 64DD IPL ROMs. BIOS files are not included with the core.
 
 Place the files in the N64DD game directory:
 
     /media/fat/games/N64DD/boot.rom  => NTSC Nintendo 64 PIF ROM
     /media/fat/games/N64DD/boot1.rom => PAL Nintendo 64 PIF ROM
-    /media/fat/games/N64DD/boot3.rom => Retail Nintendo 64DD IPL ROM
+    /media/fat/games/N64DD/boot3.rom => Japan Retail Nintendo 64DD IPL ROM
     /media/fat/games/N64DD/boot4.rom => DEV Nintendo 64DD IPL ROM
+    /media/fat/games/N64DD/boot5.rom => US Retail Nintendo 64DD IPL ROM
 
 `boot3.rom` is loaded automatically when the core starts. Development disks will automatically load `boot4.rom`. 
 
@@ -42,7 +43,7 @@ You can also place an IPL named `dd_bios.rom` in the same folder as an NDD image
     /media/fat/games/N64DD/Game Name/Game Name.ndd
     /media/fat/games/N64DD/Game Name/dd_bios.rom
 
-When that disk is selected, `dd_bios.rom` replaces the startup IPL for that disk. If it is not present, the core keeps using `boot3.rom` or `boot4.rom`.
+When that disk is selected, `dd_bios.rom` replaces the startup IPL for that disk. If it is not present, the core keeps using `boot3.rom`, `boot4.rom` or `boot5.rom`.
 
 The OSD also provides **Load 64DD IPL** for manually selecting an IPL ROM.
 
@@ -63,7 +64,7 @@ For a standalone 64DD game:
 
   1. Start the N64DD core.
   2. Select **Load 64DD Disk** and choose the NDD image.
-  3. The core loads `dd_bios.rom` from the disk folder when present, otherwise it uses the `boot3.rom` or `boot4.rom`.
+  3. The core loads `dd_bios.rom` from the disk folder when present, otherwise it uses the `boot3.rom`, `boot4.rom` or `boot5.rom`.
 
 You may also wait for the IPL to display its insert-disk message before loading the NDD image.
 
