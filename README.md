@@ -11,12 +11,8 @@ SDRAM of any size is required.
 ## Features
 
   * Nintendo 64 cartridge support (`.z64`, `.n64`, `.v64`)
-  * Retail and development 64DD disk support
-  * Compact NDD and physical/MAME disk layouts
-  * Standalone 64DD games and cartridge expansion disks
-  * Automatic loading of a cartridge named after its companion NDD image
-  * Writable 64DD disk RAM with separate save files
-  * MFS Manager-compatible `.ram` save files
+  * Standalone 64DD games and cartridge expansion disks (`.ndd`)
+  * Cartridge and Disk saving
   * 64DD RTC
   * Automatic cartridge region, CIC, save type and accessory detection
   * Controller Pak, Rumble Pak, SNAC and Randnet keyboard support
@@ -36,7 +32,7 @@ Place the files in the N64DD game directory:
     /media/fat/games/N64DD/boot4.rom => DEV Nintendo 64DD IPL ROM
     /media/fat/games/N64DD/boot5.rom => US Retail Nintendo 64DD IPL ROM
 
-`boot3.rom` is loaded automatically when the core starts. Development disks will automatically load `boot4.rom`. 
+`boot3.rom` is loaded automatically when the core starts.
 
 You can also place an IPL named `dd_bios.rom` in the same folder as an NDD image:
 
@@ -54,7 +50,6 @@ Select **Load 64DD Disk** in the OSD to mount an image with an `.ndd` extension.
 The following layouts are supported:
 
   * Compact NDD: 64,931,840 bytes
-  * Physical/MAME: 70,627,520 bytes
 
 The disk type, system data, bad tracks and retail/development format are detected automatically. The source NDD image is not modified when a game writes to disk.
 
@@ -94,7 +89,7 @@ The `.ram` file is compatible with 64DD MFS Manager. Its size depends on the dis
 
 With **Autosave** enabled, opening the OSD saves changed disk data. You can also use **Save Backup RAM** to save manually. Keep the system powered on while the saving message is displayed.
 
-Before changing disks, the current disk is saved automatically. Legacy 70,627,520-byte Ares-style `.disk` sidecars can be loaded as a fallback when no valid `.ram` file is available. The older `.ddsave` format is not supported.
+Before changing disks, the current disk is saved automatically.
 
 ## Cartridge Saving
 
@@ -166,12 +161,6 @@ List of error bits:
   * Bit 26 - CPU write FIFO full; this indicates an internal CPU logic error
   * Bit 27 - Simultaneous TLB access from multiple sources
   * Bit 28 - PI DMA attempted to write outside RDRAM
-
-## Status
-
-Retail and development 64DD games are playable. Cartridge expansion disks, disk hot insertion, RTC operation and writable disk saves are implemented. Compatibility testing is ongoing.
-
-Savestates and Transfer Pak support are not available in the standalone N64DD build.
 
 ## References
 
