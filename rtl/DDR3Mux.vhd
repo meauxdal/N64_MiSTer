@@ -34,8 +34,9 @@ end package;
 
 --   0..8   Mbyte = RDRAM
 --   8..8   Mbyte = RMRAM read behind area 
+--  12..16  Mbyte = 64DD IPL mirror
 --  16..32  Mbyte = VI FB mode area
---  32..96  Mbyte = N64 ROM fastload area (60..64 Mbyte also mirrors 64DD IPL)
+--  32..96  Mbyte = N64 ROM fastload area
 --  96..192 Mbyte = 64DD disk fastload area
 -- 192..256 Mbyte = Savestates
 

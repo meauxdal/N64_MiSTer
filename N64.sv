@@ -295,7 +295,7 @@ parameter CONF_STR = {
    "N64DD;SS3C000000:1000000;",
    "FS1,N64z64n64v64,Load,32000000;",
    "F3,NDDndd,Load 64DD Disk,36000000;",
-   "F4,N64z64n64v64binrom,Load 64DD IPL,33BC0000;",
+   "F4,N64z64n64v64binrom,Load 64DD IPL,30C00000;",
    "-;",
    "C,Cheats;",
    "O[103],Cheats Enabled,Yes,No;",

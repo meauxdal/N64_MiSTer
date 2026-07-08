@@ -58,7 +58,7 @@ end entity;
 architecture arch of PI_DD is
 
    constant DD_DISK_DDR_BASE     : unsigned(27 downto 0) := to_unsigned(16#6000000#, 28);
-   constant DD_IPL_DDR_BASE      : unsigned(27 downto 0) := to_unsigned(16#3BC0000#, 28);
+   constant DD_IPL_DDR_BASE      : unsigned(27 downto 0) := to_unsigned(16#0C00000#, 28);
    constant DD_DISK_HEAD_STRIDE  : unsigned(27 downto 0) := to_unsigned(16#3714000#, 28);
    constant DD_DISK_BLOCK_STRIDE : unsigned(27 downto 0) := to_unsigned(16#0006000#, 28);
    constant DD_BAD_BLOCK_SENTINEL: std_logic_vector(63 downto 0) := x"DDDDDDDDDDDDDDDD";
