@@ -70,7 +70,7 @@ entity n64top is
       state_loaded            : out std_logic;
       
       -- PIFROM download port
-      pifrom_wraddress        : in std_logic_vector(9 downto 0);
+      pifrom_wraddress        : in std_logic_vector(10 downto 0);
       pifrom_wrdata           : in std_logic_vector(31 downto 0);
       pifrom_wren             : in std_logic;
          
@@ -1224,7 +1224,7 @@ begin
       hpsRTC               => hpsRTC,
 
       PIFCOMPARE           => PIFCOMPARE,
-      ISPAL                => ISPAL,
+      REGION               => REGION,
       CICTYPE              => CICTYPE,
       SAVETYPE             => SAVETYPE,
       

@@ -17,7 +17,7 @@ entity pif is
       hpsRTC               : in  std_logic_vector(64 downto 0);
 
       PIFCOMPARE           : in  std_logic;
-      ISPAL                : in  std_logic;
+      REGION               : in  std_logic_vector(1 downto 0);
       CICTYPE              : in  std_logic_vector(3 downto 0);
       SAVETYPE             : in  std_logic_vector(2 downto 0); -- 000 -> off, 001 -> 4kbit, 010 -> 16kbit
       
@@ -42,7 +42,7 @@ entity pif is
       toPIF_ena2           : in  std_logic;   
       toPIF_data2          : in  std_logic_vector(7 downto 0);
       
-      pifrom_wraddress     : in  std_logic_vector(9 downto 0);
+      pifrom_wraddress     : in  std_logic_vector(10 downto 0);
       pifrom_wrdata        : in  std_logic_vector(31 downto 0);
       pifrom_wren          : in  std_logic;
       
@@ -110,7 +110,7 @@ architecture arch of pif is
    signal bus_read_ram     : std_logic := '0';
    signal bus_write_ram    : std_logic := '0';
    
-   signal pifrom_addr      : std_logic_vector(9 downto 0);
+   signal pifrom_addr      : std_logic_vector(10 downto 0);
    signal pifrom_data      : std_logic_vector(31 downto 0) := (others => '0');
    signal pifrom_locked    : std_logic := '0';
 
@@ -314,7 +314,10 @@ begin
    -- failure bits are never set
    rtc_status <= x"80" when (rtc_stop /= "00") else x"00";
 
-   pifrom_addr <= ISPAL & std_logic_vector(bus_addr(10 downto 2));
+   -- Each region has its own 2 KiB PIF ROM bank. Treat the reserved region
+   -- value as NTSC so it cannot select the unpopulated fourth bank.
+   pifrom_addr <= REGION & std_logic_vector(bus_addr(10 downto 2)) when REGION /= "11" else
+                  "00"   & std_logic_vector(bus_addr(10 downto 2));
 
    ipifrom : entity work.pifrom
    port map
@@ -1333,7 +1336,6 @@ begin
    -- synthesis translate_on 
 
 end architecture;
-
 
 
 

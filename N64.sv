@@ -538,7 +538,7 @@ assign joy = joy_unmod; //joy_unmod[14] ? 20'b0 : joy_unmod;
 
 ////////////////////////////  PIFROM download  ///////////////////////////////////
 
-reg  [9:0] pifrom_wraddress;
+reg [10:0] pifrom_wraddress;
 reg [31:0] pifrom_wrdata;   
 reg        pifrom_wren;   
 reg        pifrom_download;
@@ -555,7 +555,7 @@ always @(posedge clk_1x) begin
          if(~ioctl_addr[1]) begin
             pifrom_wrdata[31:24] <= ioctl_dout[7:0];
             pifrom_wrdata[23:16] <= ioctl_dout[15:8];
-            pifrom_wraddress    <= {ioctl_index[6], ioctl_addr[10:2]};                                  
+            pifrom_wraddress    <= {ioctl_index[7:6], ioctl_addr[10:2]};
          end else begin
             pifrom_wrdata[15:8] <= ioctl_dout[7:0];
             pifrom_wrdata[7:0]  <= ioctl_dout[15:8];
