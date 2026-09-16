@@ -549,8 +549,7 @@ architecture arch of n64top is
    
 begin
 
-   -- PAL-M uses the NTSC-family 525-line VI geometry; only PAL uses the
-   -- PAL-specific 625-line path.
+   -- MPAL uses NTSC line geometry
    ISPAL <= '1' when REGION = REGION_PAL else '0';
 
    -- clock index

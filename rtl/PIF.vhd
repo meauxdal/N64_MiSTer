@@ -314,8 +314,7 @@ begin
    -- failure bits are never set
    rtc_status <= x"80" when (rtc_stop /= "00") else x"00";
 
-   -- Each region has its own 2 KiB PIF ROM bank. Treat the reserved region
-   -- value as NTSC so it cannot select the unpopulated fourth bank.
+   -- 11 falls back to NTSC
    pifrom_addr <= REGION & std_logic_vector(bus_addr(10 downto 2)) when REGION /= "11" else
                   "00"   & std_logic_vector(bus_addr(10 downto 2));
 
