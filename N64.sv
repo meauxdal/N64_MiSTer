@@ -249,15 +249,19 @@ pll_cfg_small pll_cfg_small
 	.reconfig_from_pll(reconfig_from_pll)
 );
 
+localparam [31:0] VCLK_DSM_NTSC = 32'd3274482981; // 48.680000 MHz
+localparam [31:0] VCLK_DSM_PAL  = 32'd4024384270; // 49.650000 MHz
+localparam [31:0] VCLK_DSM_MPAL = 32'd3234528017; // 48.628318 MHz
+
 always @(posedge CLK_50M) begin : cfg_block
-	reg pald = 0, pald2 = 0;
+	reg [1:0] regiond = 0, regiond2 = 0;
 	reg [2:0] state = 0;
 
-	pald  <= status[79];
-	pald2 <= pald;
+	regiond  <= region;
+	regiond2 <= regiond;
 
 	cfg_write <= 0;
-	if(pald2 != pald) state <= 1;
+	if(regiond2 != regiond) state <= 1;
 
 	if(!cfg_waitrequest) begin
 		if(state) state<=state+1'd1;
@@ -269,7 +273,11 @@ always @(posedge CLK_50M) begin : cfg_block
 				end
 			3: begin
 					cfg_address <= 7;
-					cfg_data <= pald2 ? 4024384270 : 3274482981;
+					case(regiond2)
+						2'b01:   cfg_data <= VCLK_DSM_PAL;
+						2'b10:   cfg_data <= VCLK_DSM_MPAL;
+						default: cfg_data <= VCLK_DSM_NTSC;
+					endcase
 					cfg_write <= 1;
 				end
 			5: begin
@@ -351,7 +359,7 @@ parameter CONF_STR = {
 	"P2O[64],Auto Detect,On,Off;",
    "P2O[90],Patch games,Yes(Auto),Off;",
    "P2O[70],RAM size,8MByte,4MByte;",
-   "P2O[80:79],System Type,NTSC,PAL;",
+   "P2O[80:79],System Type,NTSC,PAL,MPAL;",
 	"P2O[68:65],CIC,6101,6102,7101,7102,6103,7103,6105,7105,6106,7106,8303,8401,5167,DDUS,5101;",
    "P2O[81],Auto Setup Pak Type,On,Off;",
    "P2O[71],ControllerPak,Off,On;",
@@ -406,6 +414,11 @@ parameter CONF_STR = {
 wire  [1:0] buttons;
 wire [127:0] status;
 wire        forced_scandoubler;
+
+localparam [1:0] REGION_NTSC = 2'b00;
+localparam [1:0] REGION_PAL  = 2'b01;
+localparam [1:0] REGION_MPAL = 2'b10;
+wire       [1:0] region      = status[80:79];
 
 wire [19:0] joy;
 wire [19:0] joy_unmod;
@@ -533,7 +546,8 @@ reg        pifrom_download;
 
 always @(posedge clk_1x) begin
 
-   pifrom_download   <= ioctl_download & (ioctl_index[5:0] == 0);
+   pifrom_download   <= ioctl_download & (ioctl_index[5:0] == 0)
+                                      & (ioctl_index[7:6] != 2'b11);
 
 	pifrom_wren <= 0;
 	if(pifrom_download) begin
@@ -782,7 +796,7 @@ n64top
    .errorCodesOn(status[2]),
    .fpscountOn(status[28]),
    
-   .ISPAL(status[79]),
+   .REGION(region),
    .FIXEDBLANKS(~fixed_blanks_off && ~clean_hdmi),
    
    .CROPVERTICAL(status[45:44]),
@@ -1060,4 +1074,3 @@ N64_SNAC N64_SNAC_inst
 );
 
 endmodule
-        
