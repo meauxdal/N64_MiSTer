@@ -549,8 +549,8 @@ architecture arch of n64top is
    
 begin
 
-   -- Preserve the original two-region behavior. MPAL intentionally follows
-   -- the existing non-PAL path until its PIF and video profiles are added.
+   -- PAL-M uses the NTSC-family 525-line VI geometry; only PAL uses the
+   -- PAL-specific 625-line path.
    ISPAL <= '1' when REGION = REGION_PAL else '0';
 
    -- clock index
