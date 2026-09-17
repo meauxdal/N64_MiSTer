@@ -249,9 +249,9 @@ pll_cfg_small pll_cfg_small
 	.reconfig_from_pll(reconfig_from_pll)
 );
 
-localparam [31:0] VCLK_DSM_NTSC = 32'd3274482981; // 48.680000 MHz
-localparam [31:0] VCLK_DSM_PAL  = 32'd4024384270; // 49.650000 MHz
-localparam [31:0] VCLK_DSM_MPAL = 32'd3234530860; // 48.628321678 MHz
+localparam [31:0] VCLK_DSM_NTSC = 32'd3275888692; // 48.6818181818 MHz
+localparam [31:0] VCLK_DSM_PAL  = 32'd4029432661; // 49.6565300000 MHz
+localparam [31:0] VCLK_DSM_MPAL = 32'd3234530860; // 48.6283216783 MHz
 
 always @(posedge CLK_50M) begin : cfg_block
 	reg [1:0] regiond = 0, regiond2 = 0;

@@ -27,7 +27,7 @@ module  pll2_0002(
 		.pll_dsm_out_sel("1st_order"),
 		.operation_mode("direct"),
 		.number_of_clocks(1),
-		.output_clock_frequency0("48.680000 MHz"),
+		.output_clock_frequency0("48.681818 MHz"),
 		.phase_shift0("0 ps"),
 		.duty_cycle0(50),
 		.output_clock_frequency1("0 MHz"),
@@ -220,8 +220,8 @@ module  pll2_0002(
 		.pll_vco_div(2),
 		.pll_cp_current(20),
 		.pll_bwctrl(4000),
-		.pll_output_clk_frequency("438.119999 MHz"),
-		.pll_fractional_division("3274482981"),
+		.pll_output_clk_frequency("438.136364 MHz"),
+		.pll_fractional_division("3275888692"),
 		.mimic_fbclk_type("none"),
 		.pll_fbclk_mux_1("glb"),
 		.pll_fbclk_mux_2("m_cnt"),
@@ -238,4 +238,3 @@ module  pll2_0002(
 		.reconfig_from_pll	(reconfig_from_pll)
 	);
 endmodule
-
