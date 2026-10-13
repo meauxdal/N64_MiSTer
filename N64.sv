@@ -981,6 +981,21 @@ assign CE_PIXEL = video_ce;
    
 reg [11:0] ARCoreX = 12'd4;
 reg [11:0] ARCoreY = 12'd3;
+
+wire [11:0] clean_arx, clean_ary;
+auto_crt_ar clean_aspect
+(
+   .clk(clk_vid),
+   .reset(reset_or | ~clean_hdmi),
+   .ce_pix(video_ce),
+   .use_b(status[79]), // A = NTSC/MPAL, B = PAL
+   .hsync(VGA_HS),
+   .vsync(VGA_VS),
+   .hblank(HBlank),
+   .vblank(VBlank),
+   .arx(clean_arx),
+   .ary(clean_ary)
+);
    
 always @(posedge clk_1x) begin
    if (fixed_blanks_off || clean_hdmi) begin // fixed blanks off
@@ -1004,8 +1019,8 @@ always @(posedge clk_1x) begin
 end
    
 wire [1:0] ar = status[48:47];
-assign VIDEO_ARX = (!ar) ? ARCoreX : (ar - 1'd1);
-assign VIDEO_ARY = (!ar) ? ARCoreY : 12'd0;
+assign VIDEO_ARX = (!ar) ? (clean_hdmi ? clean_arx : ARCoreX) : (ar - 1'd1);
+assign VIDEO_ARY = (!ar) ? (clean_hdmi ? clean_ary : ARCoreY) : 12'd0;
 
 ////////////////////////////  SNAC  ///////////////////////////////////
 

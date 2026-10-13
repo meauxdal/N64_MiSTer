@@ -159,7 +159,8 @@ begin
    VIDEO_H_START <= videoout_settings.VI_H_VIDEO_START + OFFSET_X;
    VIDEO_H_END   <= videoout_settings.VI_H_VIDEO_END + OFFSET_X;
    
-   vpos_min <= to_integer(VIDEO_V_START) when (videoout_settings.fixedBlanks = '0' and videoout_settings.CTRL_SERRATE = '0') else
+   vpos_min <= to_integer(VIDEO_V_START) when (videoout_settings.fixedBlanks = '0' and
+               (videoout_settings.CTRL_SERRATE = '0' or videoout_settings.VI_DIRECTFBMODE = '1')) else
                22 + OFFSET_Y when (videoout_settings.isPAL = '1' and videoout_settings.CROPVERTICAL = "00") else
                30 + OFFSET_Y when (videoout_settings.isPAL = '1' and videoout_settings.CROPVERTICAL = "01") else
                34 + OFFSET_Y when (videoout_settings.isPAL = '1' and videoout_settings.CROPVERTICAL = "10") else
@@ -167,7 +168,8 @@ begin
                25 + OFFSET_Y when (videoout_settings.isPAL = '0' and videoout_settings.CROPVERTICAL = "01") else
                29 + OFFSET_Y;-- when (videoout_settings.isPAL = '0' and videoout_settings.CROPVERTICAL = "10")
                
-   vpos_max <= to_integer(VIDEO_V_END) when (videoout_settings.fixedBlanks = '0' and videoout_settings.CTRL_SERRATE = '0') else
+   vpos_max <= to_integer(VIDEO_V_END) when (videoout_settings.fixedBlanks = '0' and
+               (videoout_settings.CTRL_SERRATE = '0' or videoout_settings.VI_DIRECTFBMODE = '1')) else
                310 + OFFSET_Y when (videoout_settings.isPAL = '1' and videoout_settings.CROPVERTICAL = "00") else
                302 + OFFSET_Y when (videoout_settings.isPAL = '1' and videoout_settings.CROPVERTICAL = "01") else
                298 + OFFSET_Y when (videoout_settings.isPAL = '1' and videoout_settings.CROPVERTICAL = "10") else
