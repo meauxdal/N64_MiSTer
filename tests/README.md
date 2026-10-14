@@ -18,6 +18,10 @@ a C++ compiler and make. Generated files stay under `local/`.
 * `clean_aspect_cdc_tb`: two-stage enable/PAL latency, asynchronous reset
   assertion with a stopped video clock, capture of a short reset pulse,
   and reset release after two video clock edges.
+* `auto_crt_ar_math_tb`: exact numerator/denominator products for maximum
+  supported standard coefficients, boundary values and 256 random geometry
+  snapshots. Checks arithmetic before normalization independently of raster
+  acquisition and approximate aspect-ratio comparisons.
 
 ## BattleZone capture
 

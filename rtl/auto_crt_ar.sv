@@ -93,13 +93,21 @@ localparam [3:0] S_IDLE = 4'd0, S_MUL_X = 4'd1, S_MUL_Y = 4'd2, S_SCALE_X = 4'd3
                  S_SHRINK = 4'd5, S_GROW = 4'd6, S_DONE = 4'd7;
 reg  [3:0] state;
 reg        pending;
-reg [23:0] base_x, base_y;
+reg [23:0] base;
 reg [41:0] num, den;
-reg [41:0] acc, mcand;
+reg [41:0] acc;
+reg [23:0] mcand;
 reg [17:0] mplier;
 reg  [4:0] mcount;
 
-wire [41:0] sum = acc + (mplier[0] ? mcand : 42'd0);
+// Right-shift multiplication: add to the high half, then shift the
+// accumulated product right. After 18 steps this is mcand times the
+// original multiplier.
+// Keeping mcand fixed needs only a 25-bit adder, rather than shifting a
+// 42-bit operand through a 42-bit adder. All four products use 18 steps;
+// the 12-bit geometry operands are zero-extended.
+wire [24:0] sum_hi = {1'b0, acc[41:18]} + (mplier[0] ? {1'b0, mcand} : 25'd0);
+wire [41:0] product_step = {sum_hi, acc[17:1]};
 wire [17:0] std_num = use_b ? B_NUM : A_NUM;
 wire [17:0] std_den = use_b ? B_DEN : A_DEN;
 
@@ -150,23 +158,22 @@ always @(posedge clk) begin
 		case (state)
 			S_IDLE: if (pending) begin
 				pending <= 0;
-				acc <= 0; mcand <= {30'd0, u_hactive}; mplier <= {6'd0, u_vtotal}; mcount <= 5'd12;
+				acc <= 0; mcand <= {12'd0, u_hactive}; mplier <= {6'd0, u_vtotal}; mcount <= 5'd18;
 				state <= S_MUL_X;
 			end
 
-			// each product: shift the multiplicand up, the multiplier down
+			// each product: shift the accumulator and multiplier down
 			S_MUL_X, S_MUL_Y, S_SCALE_X, S_SCALE_Y: begin
-				acc <= sum;
-				mcand <= mcand << 1;
+				acc <= product_step;
 				mplier <= mplier >> 1;
 				mcount <= mcount - 1'd1;
 				if (mcount == 5'd1) begin
 					acc <= 0;
 					case (state)
-						S_MUL_X:   begin base_x <= sum[23:0]; mcand <= {30'd0, u_htotal}; mplier <= {6'd0, u_vactive}; mcount <= 5'd12; state <= S_MUL_Y; end
-						S_MUL_Y:   begin base_y <= sum[23:0]; mcand <= {18'd0, base_x};   mplier <= std_num;           mcount <= 5'd18; state <= S_SCALE_X; end
-						S_SCALE_X: begin num <= sum;          mcand <= {18'd0, base_y};   mplier <= std_den;           mcount <= 5'd18; state <= S_SCALE_Y; end
-						default:   begin den <= sum; state <= S_SHRINK; end
+						S_MUL_X:   begin base <= product_step[23:0]; mcand <= {12'd0, u_htotal}; mplier <= {6'd0, u_vactive}; mcount <= 5'd18; state <= S_MUL_Y; end
+						S_MUL_Y:   begin base <= product_step[23:0]; mcand <= base;             mplier <= std_num;           mcount <= 5'd18; state <= S_SCALE_X; end
+						S_SCALE_X: begin num <= product_step;       mcand <= base;             mplier <= std_den;           mcount <= 5'd18; state <= S_SCALE_Y; end
+						default:   begin den <= product_step; state <= S_SHRINK; end
 					endcase
 				end
 			end

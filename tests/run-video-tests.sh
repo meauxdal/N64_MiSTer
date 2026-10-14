@@ -22,3 +22,7 @@ verilator --binary --timing -Wno-fatal --top-module clean_aspect_cdc_tb \
   --Mdir local/cdc-test rtl/clean_aspect_cdc.sv tests/clean_aspect_cdc_tb.sv \
   > local/cdc-test-build.log 2>&1
 local/cdc-test/Vclean_aspect_cdc_tb
+verilator --binary --timing -Wno-fatal --top-module auto_crt_ar_math_tb \
+  --Mdir local/ar-math-test rtl/auto_crt_ar.sv tests/auto_crt_ar_math_tb.sv \
+  > local/ar-math-test-build.log 2>&1
+local/ar-math-test/Vauto_crt_ar_math_tb
