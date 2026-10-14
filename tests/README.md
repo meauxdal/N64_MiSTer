@@ -13,7 +13,11 @@ a C++ compiler and make. Generated files stay under `local/`.
   640-pixel processing pass.
 * `auto_crt_ar_tb`: measured NTSC/PAL geometry, horizontal and vertical
   crops, alternating interlaced field lengths, half-line VS phase,
-  one-frame transient rejection and standard-change reset.
+  one-frame transient rejection, synchronized standard-change reset, and
+  Clean HDMI disable/re-enable through the actual control synchronizer.
+* `clean_aspect_cdc_tb`: two-stage enable/PAL latency, asynchronous reset
+  assertion with a stopped video clock, capture of a short reset pulse,
+  and reset release after two video clock edges.
 
 ## BattleZone capture
 
@@ -41,3 +45,19 @@ Screen/custom aspect overrides.
 
 Simulation and Quartus elaboration do not establish FPGA timing closure
 or replace this on-device check.
+
+## Clean HDMI control timing
+
+`clean_aspect_cdc` captures Clean HDMI enable and PAL selection in two
+video-clock registers. Core reset asserts the reset synchronizer
+asynchronously and releases it after two video-clock edges; the aspect
+calculator still resets synchronously. Disable holds the calculator in
+reset through the synchronized enable. NTSC and MPAL both select standard A.
+
+The two new `N64.sdc` exceptions target only the reset synchronizer's
+`clrn` pins and the enable/PAL first-stage `d` pins. They do not cut the
+second-stage data pins or the paths to the aspect calculator. When changing
+the synchronizer hierarchy, verify these four pins resolve in TimeQuest
+and all three first-stage-to-second-stage setup and hold paths remain
+analyzed. Aspect results use the existing `CLK_VIDEO`/`VIDEO_ARX`/`VIDEO_ARY`
+interface, whose scaler consumer runs on that same video clock.

@@ -983,12 +983,23 @@ reg [11:0] ARCoreX = 12'd4;
 reg [11:0] ARCoreY = 12'd3;
 
 wire [11:0] clean_arx, clean_ary;
+wire clean_aspect_reset, clean_aspect_pal;
+clean_aspect_cdc clean_aspect_controls
+(
+   .clk(clk_vid),
+   .reset_async(reset_or),
+   .enabled_async(clean_hdmi),
+   .pal_async(status[79]), // A = NTSC/MPAL, B = PAL
+   .reset(clean_aspect_reset),
+   .pal(clean_aspect_pal)
+);
+
 auto_crt_ar clean_aspect
 (
    .clk(clk_vid),
-   .reset(reset_or | ~clean_hdmi),
+   .reset(clean_aspect_reset),
    .ce_pix(video_ce),
-   .use_b(status[79]), // A = NTSC/MPAL, B = PAL
+   .use_b(clean_aspect_pal),
    .hsync(VGA_HS),
    .vsync(VGA_VS),
    .hblank(HBlank),

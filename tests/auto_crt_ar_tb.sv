@@ -2,7 +2,10 @@
 module auto_crt_ar_tb;
   reg clk = 0;
   always #5 clk = ~clk;
-  reg reset = 1, ce_pix = 0, use_b = 0;
+  reg reset_async = 1, enabled_async = 1, pal_async = 0, ce_pix = 0;
+  wire reset, use_b;
+  clean_aspect_cdc controls(.clk(clk), .reset_async(reset_async),
+    .enabled_async(enabled_async), .pal_async(pal_async), .reset(reset), .pal(use_b));
   reg hsync = 0, vsync = 0, hblank = 1, vblank = 1;
   wire [11:0] arx, ary;
   auto_crt_ar dut(.*);
@@ -32,7 +35,8 @@ module auto_crt_ar_tb;
 
   initial begin
     repeat (3) @(negedge clk);
-    reset = 0;
+    reset_async = 0;
+    repeat (3) @(negedge clk);
     check_ratio(774, 262, 640, 240, 8192, 5565);
     // Interlaced fields can differ by one line and start VS halfway
     // through a line. They must not make the stable ratio flicker.
@@ -54,10 +58,16 @@ module auto_crt_ar_tb;
       frame(774, 262, 512, 200);
       if (arx != old_x || ary != old_y) $fatal(1, "transient changed ratio");
     end
-    @(negedge clk); use_b = 1;
-    @(negedge clk);
+    @(negedge clk); pal_async = 1;
+    repeat (3) @(negedge clk);
     if (arx != 4 || ary != 3) $fatal(1, "standard change did not reset ratio");
     check_ratio(795, 312, 640, 288, 3776, 2496);
+    check_ratio(795, 312, 400, 240, 3776, 2496);
+    @(negedge clk); enabled_async = 0;
+    repeat (3) @(negedge clk);
+    if (arx != 4 || ary != 3) $fatal(1, "Clean HDMI disable did not reset ratio");
+    enabled_async = 1;
+    repeat (3) @(negedge clk);
     check_ratio(795, 312, 400, 240, 3776, 2496);
     $display("PASS: NTSC/PAL, cropping, interlaced fields, transient rejection, standard reset");
     $finish;
