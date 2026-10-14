@@ -16,6 +16,13 @@ a C++ compiler and make. Generated files stay under `local/`.
   `X_SCALE=0x400`, `Y_SCALE=0x800`, origins `0x200480/0x200900`),
   using the real line processor. Checks all 454 framebuffer rows and their
   source-row tags in both fields, not just memory request counts.
+* `vi_static_mode_tb`: the complete VI runs beyond the 30-field static-origin
+  timeout with Courtside's alternating same-page origins. Checks that the
+  `Y_SCALE=0x800` title retains rotating buffers and writes 454 contiguous rows,
+  that `Y_SCALE=0x400` static interlacing still weaves, and that changing back
+  to `0x800` leaves weave mode without an origin page change. Blank warmup
+  fields shorten simulation; RAM and disabled overlays use zero-output stubs.
+  Pixel contents remain covered separately by `vi_courtside_tb`.
 * `vi_fb_queue_tb`: sustained CPU/RDP contention while streaming 3,000
   framebuffer words, including DDR busy cycles. Requires every word to
   reach DDR in order and other clients to continue receiving service.
