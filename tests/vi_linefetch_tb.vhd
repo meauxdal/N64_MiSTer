@@ -14,13 +14,15 @@ architecture test of vi_linefetch_tb is
    signal count : unsigned(9 downto 0);
    signal requests : integer := 0;
    signal firstAddress : unsigned(27 downto 0);
+   signal origin : unsigned(23 downto 0) := x"6C2D00";
+   signal serrate : std_logic := '1';
 begin
    clk <= not clk after 5 ns;
    dut : entity work.VI_linefetch port map (
       clk1x => clk, clk2x => clk, reset => reset,
       VI_DIRECTFBMODE => '1', VI_DIRECTFB_2LINES => twoLines,
-      VI_CTRL_TYPE => "10", VI_CTRL_SERRATE => '1',
-      VI_ORIGIN => x"6C2D00", VI_WIDTH => width,
+      VI_CTRL_TYPE => "10", VI_CTRL_SERRATE => serrate,
+      VI_ORIGIN => origin, VI_WIDTH => width,
       VI_X_SCALE_FACTOR => x"400", VI_Y_SCALE_FACTOR => yscale,
       VI_Y_SCALE_OFFSET => x"000", newFrame => newFrame, fetch => fetch,
       interlacedField => field, video_blockVIFB => '0',
@@ -56,11 +58,16 @@ begin
          wait until falling_edge(clk); value <= '1';
          wait until falling_edge(clk); value <= '0';
       end;
-      procedure check(paired : std_logic; odd : std_logic; pitch, scale, rows : integer) is
+      procedure check(paired : std_logic; odd : std_logic; pitch, scale, rows : integer;
+                      interlaced : std_logic := '1') is
          variable expected : integer;
       begin
          reset <= '1'; twoLines <= paired; field <= odd;
          width <= to_unsigned(pitch, 12); yscale <= to_unsigned(scale, 12);
+         serrate <= interlaced;
+         expected := 16#6C2D00#;
+         if odd = '1' then expected := expected + pitch * 2; end if;
+         origin <= to_unsigned(expected, 24);
          wait for 40 ns; wait until falling_edge(clk); reset <= '0';
          pulse(newFrame);
          for i in 1 to 5 loop
@@ -68,8 +75,7 @@ begin
             wait for 1000 ns;
          end loop;
          assert requests = rows report "incorrect number of source rows" severity failure;
-         expected := 16#6C2D00#;
-         if paired = '1' and odd = '1' then expected := expected - pitch * 2; end if;
+         if interlaced = '1' and odd = '1' then expected := expected - pitch * 2; end if;
          assert to_integer(firstAddress) = expected report "incorrect field origin" severity failure;
          pulse(newFrame); wait for 40 ns;
          assert to_integer(count) = rows report "incorrect framebuffer height" severity failure;
@@ -83,7 +89,8 @@ begin
       check('1', '1', 320, 16#400#, 10);
       -- Two rows are still required when Y scale itself advances by two.
       check('0', '0', 640, 16#800#, 10);
-      report "PASS: BattleZone fields, halved stride, vertical downscale";
+      check('0', '1', 640, 16#400#, 5, '0');
+      report "PASS: aligned BattleZone fields, halved stride, vertical downscale and progressive origin";
       std.env.stop;
       wait;
    end process;

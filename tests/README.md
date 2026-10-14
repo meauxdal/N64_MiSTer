@@ -5,12 +5,16 @@ a C++ compiler and make. Generated files stay under `local/`.
 
 * `vi_linefetch_tb`: BattleZone's mission VI layout (`WIDTH=640`,
   `SERRATE=1`, `X_SCALE=Y_SCALE=0x400`) must fetch one source row per
-  output line. The odd field must retain its supplied origin. Layouts
-  with explicitly halved stride still fetch two rows and adjust the odd
-  field origin. Y scaling by two still fetches two rows.
+  output line. The one-row offset in the odd field's supplied origin is
+  compensated independently of row count, so both fields start at the same
+  source row. Layouts with explicitly halved stride still fetch two rows.
+  Y scaling by two still fetches two rows; progressive origins are unchanged.
 * `vi_crop_tb`: framebuffer width follows the programmed horizontal
   window, including scale and subpixel offset, rather than a fixed
   640-pixel processing pass.
+* `vi_field_crop_tb`: the captured interlaced `35:509` / `37:511` windows
+  produce one stable Clean HDMI blanking window. Also checks PAL fields,
+  genuine crop changes, progressive menus and the Original/fixed-blank paths.
 * `auto_crt_ar_tb`: measured NTSC/PAL geometry, horizontal and vertical
   crops, alternating interlaced field lengths, half-line VS phase,
   one-frame transient rejection, synchronized standard-change reset, and

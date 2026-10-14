@@ -160,7 +160,11 @@ begin
                         ram_offset    <= (others => '0');
                         lineInFetched <= "011";
                         lineProcCnt   <= '0';
-                        if (VI_DIRECTFB_2LINES = '1' and interlacedField = '1' and video_blockVIFB = '0') then
+                        -- Odd-field origins carry a one-row phase even
+                        -- when the source uses a full, unhalved VI stride.
+                        -- Align the progressive framebuffer independently
+                        -- of whether each fetch reconstructs one or two rows.
+                        if (VI_CTRL_SERRATE = '1' and interlacedField = '1' and video_blockVIFB = '0') then
                            ram_offset <= to_signed(0, ram_offset'length) - to_integer(lineWidth);
                         end if;
                      else
