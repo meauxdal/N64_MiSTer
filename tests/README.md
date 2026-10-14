@@ -12,6 +12,13 @@ a C++ compiler and make. Generated files stay under `local/`.
 * `vi_crop_tb`: framebuffer width follows the programmed horizontal
   window, including scale and subpixel offset, rather than a fixed
   640-pixel processing pass.
+* `vi_courtside_tb`: captured Courtside menu layout (`WIDTH=576`,
+  `X_SCALE=0x400`, `Y_SCALE=0x800`, origins `0x200480/0x200900`),
+  using the real line processor. Checks all 454 framebuffer rows and their
+  source-row tags in both fields, not just memory request counts.
+* `vi_fb_queue_tb`: sustained CPU/RDP contention while streaming 3,000
+  framebuffer words, including DDR busy cycles. Requires every word to
+  reach DDR in order and other clients to continue receiving service.
 * `vi_field_crop_tb`: the captured interlaced `35:509` / `37:511` windows
   produce one stable Clean HDMI blanking window. Also checks PAL fields,
   genuine crop changes, progressive menus and the Original/fixed-blank paths.

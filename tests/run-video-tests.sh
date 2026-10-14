@@ -5,11 +5,12 @@ mkdir -p local/vi-test
 (
   cd local/vi-test
   ghdl -a --std=08 --work=mem ../../rtl/VI_package.vhd
+  ghdl -a --std=08 --work=mem ../../rtl/SyncFifoFallThrough.vhd
   ghdl -a --std=08 ../../rtl/VI_package.vhd ../../rtl/functions.vhd \
-    ../../rtl/VI_sqrt.vhd ../../rtl/VI_linefetch.vhd ../../rtl/VI_outProcess.vhd \
-    ../../rtl/VI_videoout_async.vhd \
-    ../../tests/vi_linefetch_tb.vhd ../../tests/vi_crop_tb.vhd ../../tests/vi_field_crop_tb.vhd
-  for bench in vi_linefetch_tb vi_crop_tb vi_field_crop_tb; do
+    ../../rtl/VI_sqrt.vhd ../../rtl/VI_linefetch.vhd ../../rtl/VI_lineProcess.vhd ../../rtl/VI_outProcess.vhd \
+    ../../rtl/VI_videoout_async.vhd ../../rtl/DDR3Mux.vhd \
+    ../../tests/vi_linefetch_tb.vhd ../../tests/vi_crop_tb.vhd ../../tests/vi_field_crop_tb.vhd ../../tests/vi_courtside_tb.vhd ../../tests/vi_fb_queue_tb.vhd
+  for bench in vi_linefetch_tb vi_crop_tb vi_field_crop_tb vi_courtside_tb vi_fb_queue_tb; do
     ghdl -e --std=08 "$bench"
     ghdl -r --std=08 "$bench" --assert-level=error > "$bench.log" 2>&1
     tail -n 2 "$bench.log"
