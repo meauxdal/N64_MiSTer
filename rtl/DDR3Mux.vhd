@@ -280,11 +280,7 @@ begin
                   
                      ddr3State <= RSPFIFO;
 
-                  -- Full-height Clean HDMI can produce two framebuffer
-                  -- rows per VI line. Do not let sustained CPU/RDP traffic
-                  -- fill this unthrottled queue and silently lose pixels.
-                  -- Only boost priority near capacity; retain headroom for
-                  -- an outstanding DDR read burst and the RSP FIFO drain.
+                  -- retain headroom for DDR read burst and RSP FIFO drain
                   elsif (VIFBfifo_nearfull = '1' and VIFBfifo_empty = '0' and VIFBfifo_Rd = '0') then
                      VIFBfifo_Rd <= '1';
                      ddr3_WE     <= '1';

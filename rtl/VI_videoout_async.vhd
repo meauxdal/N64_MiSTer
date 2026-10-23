@@ -76,10 +76,7 @@ architecture arch of vi_videoout_async is
    signal vpos_min               : integer range 0 to 511;
    signal vpos_max               : integer range 0 to 511;   
 
-   -- Clean HDMI presents fields as progressive frames. Games commonly
-   -- move both VI vertical endpoints by two half-lines on alternate fields.
-   -- Keep that one-line field phase out of the scaler's active window,
-   -- while retaining the programmed crop and its height.
+   -- field phase correction in clean HDMI
    signal crop_prev_start, crop_prev_end : unsigned(8 downto 0) := (others => '0');
    signal crop_start, crop_end           : unsigned(8 downto 0) := (others => '0');
    signal crop_valid                    : std_logic := '0';
@@ -214,8 +211,6 @@ begin
                   crop_start <= crop_prev_start;
                   crop_end   <= crop_prev_end;
                end if;
-               -- On the opposite field, the current window is already
-               -- the lower of the pair. Larger moves are real crop changes.
             end if;
          end if;
       end if;

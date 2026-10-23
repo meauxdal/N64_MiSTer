@@ -15,8 +15,7 @@ entity VI_linefetch is
       error_linefetch    : out std_logic := '0';
       
       VI_DIRECTFBMODE    : in  std_logic;
-      -- Two contiguous rows reconstruct a field only when the caller
-      -- has halved the VI stride. SERRATE alone does not imply this layout.
+      -- don't key weave on SERRATE only
       VI_DIRECTFB_2LINES : in  std_logic;
       
       VI_CTRL_TYPE       : in unsigned(1 downto 0);
@@ -160,10 +159,7 @@ begin
                         ram_offset    <= (others => '0');
                         lineInFetched <= "011";
                         lineProcCnt   <= '0';
-                        -- Odd-field origins carry a one-row phase even
-                        -- when the source uses a full, unhalved VI stride.
-                        -- Align the progressive framebuffer independently
-                        -- of whether each fetch reconstructs one or two rows.
+                        -- odd-field origin alignment
                         if (VI_CTRL_SERRATE = '1' and interlacedField = '1' and video_blockVIFB = '0') then
                            ram_offset <= to_signed(0, ram_offset'length) - to_integer(lineWidth);
                         end if;

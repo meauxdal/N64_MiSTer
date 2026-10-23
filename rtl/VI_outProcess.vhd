@@ -226,8 +226,7 @@ begin
 
                dx             <= dx + 1;
                fetch_x        <= fetch_x + 1;
-               -- Clean HDMI must use the source extent of the programmed
-               -- VI window, rather than the fixed 640-pixel processing pass.
+               -- use source dimensions for clean HDMI
                if (dx + 1 = VI_H_VIDEO_END or (fetch_x >= 639 and dx < VI_H_VIDEO_END)) then
                   line_x_end <= x_accu(19 downto 10);
                end if;
