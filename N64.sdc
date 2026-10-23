@@ -1,8 +1,6 @@
 derive_pll_clocks
 derive_clock_uncertainty
 
-# Clean HDMI aspect controls: cut only the asynchronous entry pins.
-# Stage-to-stage and synchronized-control-to-calculator paths remain timed.
 set_false_path -to [get_pins -compatibility_mode {emu|clean_aspect_controls|reset_meta|clrn emu|clean_aspect_controls|reset_sync|clrn}]
 set_false_path -to [get_pins -compatibility_mode {emu|clean_aspect_controls|enabled_meta|d emu|clean_aspect_controls|pal_meta|d}]
 
